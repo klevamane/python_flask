@@ -1,5 +1,5 @@
 from flask import Flask, request
-from flask_restful import Resource, Api
+from flask_restful import Resource, Api, reqparse
 from flask_jwt import JWT, jwt_required
 
 from security import authenticate, identity
@@ -22,6 +22,17 @@ items = []
 
 # the class inherits from Resource, similar to extends **
 class Item(Resource):
+    # kind of validation to be used in methods that choose to use it
+    parser = reqparse.RequestParser()
+        # because we've only defined price, if we put any other argument in the payload
+        # it wont show, it would just be erased
+    parser.add_argument('price',
+        type=float,
+        required=True,
+        help="This field cannot be left blank!"
+
+        )
+
     @jwt_required()
     def get(self, name):
         
@@ -41,7 +52,8 @@ class Item(Resource):
         if next(filter(lambda x: x['name'] == name, items), None) is not None: # we can omit if not None (because is still satisfies the condition)
             return {'message': 'An item with name {} already exists'.format(name)}, 400
         
-        data = request.get_json()
+        # data = request.get_json()
+        data = Item.parser.parse_args()
         item = {'name': name, 'price': data['price']}
         items.append(item)
         return item, 201
@@ -60,7 +72,9 @@ class Item(Resource):
         return {'message': 'Item deleted'}
     
     def put(self, name):
-        data = request.get_json()
+       
+        # data = request.get_json()
+        data = Item.parser.parse_args()
         item = next(filter(lambda x: x['name'] == name, items), None)
         if item is None:
             item = {'name': name, 'price': data['price']}
